@@ -151,61 +151,43 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
 
     setIsLoading(true);
+    setError('');
     clearError();
     
     try {
       if (isSignUp) {
-        // For demo purposes, simulate successful signup
-        try {
-          const result = await signUp({
-            email: EmailValidator.sanitize(email),
-            password,
-            firstName,
-            lastName,
-            profession
-          });
-          
-          if (result.needsVerification) {
-            setRegisteredEmail(EmailValidator.sanitize(email));
-            setShowEmailVerification(true);
-          } else {
-            // User is already verified, proceed to dashboard
-            onLogin({ firstName });
-          }
-        } catch (firebaseError) {
-          console.warn('Firebase signup failed, using demo mode:', firebaseError);
-          // Fallback to demo mode
+        // Firebase registration
+        const result = await signUp({
+          email: EmailValidator.sanitize(email),
+          password,
+          firstName,
+          lastName,
+          profession
+        });
+        
+        if (result.needsVerification) {
+          setRegisteredEmail(EmailValidator.sanitize(email));
+          setShowEmailVerification(true);
+        } else {
+          // User is already verified, proceed to dashboard
           onLogin({ firstName });
         }
       } else {
-        // For demo purposes, allow any login
-        try {
-          const result = await signIn(username, password);
-          
-          if (!result.user.emailVerified) {
-            // User needs to verify email
-            setRegisteredEmail(result.user.email || '');
-            setShowEmailVerification(true);
-          } else {
-            // User is verified, proceed to dashboard
-            onLogin({ firstName: result.profile.firstName });
-          }
-        } catch (firebaseError) {
-          console.warn('Firebase signin failed, using demo mode:', firebaseError);
-          // Fallback to demo mode - allow any username/password
-          if (username.trim() && password.trim()) {
-            onLogin({ firstName: username });
-          } else {
-            throw new Error('Please enter both username and password');
-          }
+        // Firebase sign in
+        const result = await signIn(username, password);
+        
+        if (!result.user.emailVerified) {
+          // User needs to verify email
+          setRegisteredEmail(result.user.email || '');
+          setShowEmailVerification(true);
+        } else {
+          // User is verified, proceed to dashboard
+          onLogin({ firstName: result.profile.firstName });
         }
       }
     } catch (error: any) {
       console.error('Authentication error:', error);
-      // Show error only if it's a validation error, not a Firebase config error
-      if (!error.message.includes('Firebase') && !error.message.includes('configured')) {
-        setErrors({ general: authError || error.message || 'Authentication failed' });
-      }
+      setError(authError || error.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -398,11 +380,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           )}
           
           {/* Firebase Auth Error */}
-          {(authError || errors.general) && (
+          {authError && (
             <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl">
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="h-4 w-4 text-red-400" />
-                <span className="text-red-200 text-sm">{authError || errors.general}</span>
+                <span className="text-red-200 text-sm">{authError}</span>
               </div>
             </div>
           )}
