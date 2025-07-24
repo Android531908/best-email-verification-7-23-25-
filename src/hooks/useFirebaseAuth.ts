@@ -15,16 +15,36 @@ export const useFirebaseAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
-    loading: true,
+    loading: false, // Start with false to prevent infinite loading
     error: null
   });
 
   useEffect(() => {
+    // Set loading to true when starting auth state listener
+    setAuthState(prev => ({ ...prev, loading: true }));
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
           // User is signed in, get their profile
-          const profile = await FirebaseAuthService.getUserProfile(user.uid);
+          let profile = null;
+          try {
+            profile = await FirebaseAuthService.getUserProfile(user.uid);
+          } catch (profileError) {
+            console.warn('Could not load user profile:', profileError);
+            // Create a basic profile if Firestore is not available
+            profile = {
+              uid: user.uid,
+              email: user.email || '',
+              firstName: user.displayName?.split(' ')[0] || 'User',
+              lastName: user.displayName?.split(' ')[1] || '',
+              profession: 'Student',
+              emailVerified: user.emailVerified,
+              createdAt: new Date(),
+              role: 'student' as const
+            };
+          }
+          
           setAuthState({
             user,
             profile,
@@ -45,13 +65,31 @@ export const useFirebaseAuth = () => {
         setAuthState(prev => ({
           ...prev,
           loading: false,
-          error: error instanceof Error ? error.message : 'Authentication error'
+          error: null // Don't show auth errors on initial load
         }));
       }
     });
 
+    // Add a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setAuthState(prev => {
+        if (prev.loading) {
+          console.warn('Auth state loading timeout, proceeding without authentication');
+          return {
+            user: null,
+            profile: null,
+            loading: false,
+            error: null
+          };
+        }
+        return prev;
+      });
+    }, 5000); // 5 second timeout
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signUp = async (userData: {

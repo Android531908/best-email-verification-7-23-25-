@@ -22,6 +22,19 @@ function App() {
   // Firebase Auth
   const { user, profile, loading: authLoading, isEmailVerified } = useFirebaseAuth();
 
+  // Add timeout for auth loading to prevent infinite loading
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (authLoading && currentPage === 'splash') {
+        console.warn('Auth loading timeout, proceeding to login');
+        setShowSplash(false);
+        setCurrentPage('login');
+      }
+    }, 8000); // 8 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [authLoading, currentPage]);
+
   React.useEffect(() => {
     console.log('App component mounted');
     console.log('User agent:', navigator.userAgent);
@@ -47,7 +60,8 @@ function App() {
         password: params.get('password'),
         subject: params.get('subject'),
         instructor: params.get('instructor')
-      });
+      setCurrentPage('verify');
+      setShowSplash(false);
     }
   }, []);
   
@@ -159,11 +173,11 @@ function App() {
             </div>
           </div>
         ) : (
-        {currentPage === 'login' ? (
+        currentPage === 'login' ? (
           <LoginPage onLogin={handleLogin} />
         ) : currentPage === 'dashboard' ? (
           <StudentDashboard onLogout={handleLogout} userData={userData} />
-        ) : null}
+        ) : null
         )}
       </div>
     </div>

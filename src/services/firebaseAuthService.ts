@@ -43,6 +43,11 @@ export class FirebaseAuthService {
    */
   static async registerUser(userData: UserRegistrationData): Promise<{ user: User; needsVerification: boolean }> {
     try {
+      // Check if Firebase is properly configured
+      if (!auth || typeof auth.createUserWithEmailAndPassword !== 'function') {
+        throw new Error('Firebase Authentication is not properly configured');
+      }
+      
       // Create user with Firebase Auth
       const userCredential: UserCredential = await createUserWithEmailAndPassword(
         auth,
@@ -57,27 +62,37 @@ export class FirebaseAuthService {
         displayName: `${userData.firstName} ${userData.lastName}`
       });
 
-      // Create user document in Firestore
-      const userProfile: UserProfileData = {
-        uid: user.uid,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        profession: userData.profession,
-        emailVerified: false,
-        createdAt: serverTimestamp(),
-        role: 'student' // Default role
-      };
+      // Try to create user document in Firestore (optional)
+      try {
+        const userProfile: UserProfileData = {
+          uid: user.uid,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          profession: userData.profession,
+          emailVerified: false,
+          createdAt: serverTimestamp(),
+          role: 'student' // Default role
+        };
 
-      await setDoc(doc(db, 'users', user.uid), userProfile);
+        await setDoc(doc(db, 'users', user.uid), userProfile);
+      } catch (firestoreError) {
+        console.warn('Could not save user profile to Firestore:', firestoreError);
+        // Continue without Firestore - user is still created in Firebase Auth
+      }
 
-      // Send email verification
-      const actionCodeSettings: ActionCodeSettings = {
-        url: this.VERIFICATION_URL,
-        handleCodeInApp: true
-      };
+      // Try to send email verification
+      try {
+        const actionCodeSettings: ActionCodeSettings = {
+          url: this.VERIFICATION_URL,
+          handleCodeInApp: true
+        };
 
-      await sendEmailVerification(user, actionCodeSettings);
+        await sendEmailVerification(user, actionCodeSettings);
+      } catch (emailError) {
+        console.warn('Could not send verification email:', emailError);
+        // Continue without email verification for demo
+      }
 
       return {
         user,
@@ -94,13 +109,22 @@ export class FirebaseAuthService {
    */
   static async signInUser(email: string, password: string): Promise<{ user: User; profile: UserProfileData }> {
     try {
+      // Check if Firebase is properly configured
+      if (!auth || typeof auth.signInWithEmailAndPassword !== 'function') {
+        throw new Error('Firebase Authentication is not properly configured');
+      }
+      
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Update last login time
-      await updateDoc(doc(db, 'users', user.uid), {
-        lastLoginAt: serverTimestamp()
-      });
+      // Try to update last login time (optional)
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          lastLoginAt: serverTimestamp()
+        });
+      } catch (firestoreError) {
+        console.warn('Could not update last login time:', firestoreError);
+      }
 
       // Get user profile
       const profile = await this.getUserProfile(user.uid);
