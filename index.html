@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#059669" />
+    <meta name="description" content="Curio Tutors - Where Learning Comes to Life. Professional tutoring services with personalized learning experiences." />
+    <meta name="robots" content="index, follow" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <title>Curio Tutors</title>
+    <style>
+      /* Critical CSS for immediate rendering */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        font-size: 16px;
+        line-height: 1.5;
+        background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+      }
+      
+      #root {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+      
+      /* Prevent pull-to-refresh and bounce effects */
+      body {
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      
+      /* Loading fallback */
+      .loading-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        width: 100vw;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+        color: #92400e;
+        position: fixed;
+        top: 0;
+        left: 0;
+        font-size: 18px;
+        flex-direction: column;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(146, 64, 14, 0.3);
+        border-radius: 50%;
+        border-top-color: #92400e;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 16px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Performance optimizations */
+      * {
+        box-sizing: border-box;
+      }
+      
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading-fallback">
+        <div class="loading-spinner"></div>
+        <div>Loading Curio Tutors...</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Enhanced error handling
+      console.log('HTML loaded, initializing...');
+      
+      // Prevent scrolling and zooming
+      document.addEventListener('touchmove', function(e) {
+        const target = e.target;
+        const scrollableParent = target.closest('.scrollable-content, .login-container, .page-content, .scrollable-area');
+        
+        if (!scrollableParent) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Additional iOS Chrome fixes
+      document.addEventListener('touchstart', function(e) {
+        // Allow scrolling on login container and scrollable areas
+        const scrollableContainer = e.target.closest('.login-container, .scrollable-area, .page-content');
+        if (scrollableContainer) {
+          e.stopPropagation();
+        }
+      }, { passive: true });
+      
+      document.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+      });
+      
+      document.addEventListener('gesturechange', function(e) {
+        e.preventDefault();
+      });
+      
+      document.addEventListener('gestureend', function(e) {
+        e.preventDefault();
+      });
+      
+      // iOS-specific fixes
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM Content Loaded');
+        
+        const root = document.getElementById('root');
+        if (root) {
+          root.style.position = 'fixed';
+          root.style.overflow = 'hidden';
+          root.style.height = '100vh';
+          root.style.width = '100vw';
+        }
+        
+        // Fix viewport height on iOS
+        const setVH = () => {
+          const vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+          
+          // Additional fix for login container
+          const loginContainer = document.querySelector('.login-container');
+          if (loginContainer) {
+            loginContainer.style.minHeight = `${window.innerHeight}px`;
+          }
+        };
+        
+        setVH();
+        window.addEventListener('resize', setVH);
+        window.addEventListener('orientationchange', setVH);
+        
+        // Force scroll capability on login container
+        const loginContainer = document.querySelector('.login-container');
+        if (loginContainer) {
+          loginContainer.style.overflowY = 'auto';
+          loginContainer.style.webkitOverflowScrolling = 'touch';
+          loginContainer.style.height = 'auto';
+          loginContainer.style.minHeight = '100vh';
+        }
+      });
+      
+      // Global error handling
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+      });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+      });
+    </script>
+  </body>
+</html>

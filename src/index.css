@@ -1,0 +1,428 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Prevent scrolling and ensure full viewport usage */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px; /* Minimum font size for readability */
+  /* iOS-specific fixes */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+/* iOS Chrome specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari and Chrome - Remove conflicting fixed positioning */
+  html, body {
+    position: relative;
+    overflow: visible;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    /* Ensure proper scrolling on iOS Chrome */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
+  
+  #root {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  
+  /* Fix for iOS Chrome viewport issues */
+  .login-container {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    padding-bottom: env(safe-area-inset-bottom, 40px);
+    /* Force scrollable height */
+    height: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Additional iOS Chrome fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  /* High DPI iOS devices */
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  /* Ensure touch scrolling works properly */
+  .scrollable-area {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    transform: translateZ(0);
+  }
+}
+
+/* Prevent iOS bounce effect */
+.prevent-bounce {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for iOS viewport height issues */
+.ios-vh-fix {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Chrome iOS specific scrolling fixes */
+@media screen and (max-width: 768px) {
+  /* Mobile Chrome fixes */
+  html {
+    overflow-x: hidden;
+    overflow-y: scroll;
+  }
+  
+  body {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    position: relative;
+    min-height: 100vh;
+  }
+  
+  /* Ensure content can scroll */
+  .page-content {
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch;
+    height: auto;
+    min-height: 100vh;
+    /* Force content to be scrollable */
+    max-height: none;
+    position: relative;
+  }
+  
+  /* Specific fixes for login page on mobile */
+  .login-container {
+    /* Ensure the container can scroll */
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+    height: auto !important;
+    min-height: calc(100vh + 200px) !important;
+    /* Remove any height restrictions */
+    max-height: none !important;
+    /* Ensure proper positioning */
+    position: relative !important;
+    /* Force scrollable content */
+    padding-bottom: 120px !important;
+  }
+  
+  /* Fix for form elements on mobile */
+  .login-container form {
+    /* Ensure form doesn't get cut off */
+    margin-bottom: 80px;
+  }
+  
+  /* Ensure buttons are accessible */
+  .login-container button {
+    /* Prevent buttons from being cut off */
+    margin-bottom: 12px;
+    /* Ensure buttons are touchable */
+    min-height: 44px;
+  }
+  
+  /* Ensure footer links are accessible */
+  .login-container .text-center {
+    margin-bottom: 20px;
+  }
+}
+
+/* Additional mobile Chrome fixes */
+@media screen and (max-width: 768px) and (-webkit-min-device-pixel-ratio: 2) {
+  /* High DPI mobile devices (like iPhone) */
+  .login-container {
+    /* Force minimum content height to ensure scrolling */
+    min-height: calc(100vh + 200px);
+    padding-bottom: 100px;
+  }
+  
+  /* Ensure viewport meta tag effects are applied */
+  html {
+    /* Prevent zoom on input focus */
+    -webkit-text-size-adjust: 100%;
+    /* Ensure proper touch handling */
+    touch-action: manipulation;
+  }
+  
+  /* Fix for iOS Chrome address bar issues */
+  body {
+    /* Use viewport units that account for dynamic viewport */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Specific fix for iPhone Chrome scrolling */
+@media screen and (max-width: 414px) {
+  .login-container {
+    /* Ensure content is always taller than viewport */
+    min-height: calc(100vh + 300px);
+    padding-bottom: 120px;
+  }
+  
+  /* Reduce spacing on very small screens */
+  .login-container > div {
+    padding-top: 20px;
+    padding-bottom: 40px;
+  }
+}
+
+/* Responsive image optimization */
+img {
+  image-rendering: auto;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* High DPI display optimization */
+@media (-webkit-min-device-pixel-ratio: 2), 
+       (min-resolution: 192dpi), 
+       (min-resolution: 2dppx) {
+  img {
+    image-rendering: auto;
+  }
+}
+
+/* Responsive breakpoints */
+/* Desktop Large - 1920x1080 */
+@media (min-width: 1440px) {
+  html {
+    font-size: 18px;
+  }
+  
+  .splash-container {
+    max-width: 1920px;
+    max-height: 1080px;
+  }
+}
+
+/* Desktop - 1440px */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+/* Tablet - 1024px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Mobile Large - 768px */
+@media (min-width: 375px) and (max-width: 767px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Mobile - 375x667 */
+@media (max-width: 374px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent iOS zoom on double tap */
+  touch-action: manipulation;
+}
+
+/* Prevent zoom on input focus */
+input, select, textarea {
+  font-size: 16px;
+  /* Prevent iOS zoom on focus */
+  transform: translateZ(0);
+}
+
+/* Custom scrollbar for internal scrollable areas */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.3);
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.5);
+}
+
+/* Smooth scrolling behavior */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar classes for Tailwind */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thumb-green-300::-webkit-scrollbar-thumb {
+  background-color: rgba(34, 197, 94, 0.4);
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-green-300::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(34, 197, 94, 0.6);
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Enhanced scrollbar for sidebar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(251, 191, 36, 0.3) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(251, 191, 36, 0.3);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(251, 191, 36, 0.5);
+}
+
+/* Smooth animations for sidebar */
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-from-top-2 {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-left {
+  animation-name: slide-in-from-left;
+}
+
+.slide-in-from-top-2 {
+  animation-name: slide-in-from-top-2;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}
+
+/* Sidebar responsive adjustments */
+@media (max-width: 1023px) {
+  .sidebar-mobile-offset {
+    margin-left: 0 !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.sidebar-item:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Performance optimizations */
+.sidebar-container {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+/* iOS-specific scrolling fixes */
+.ios-scroll-fix {
+  /* Enable momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent overscroll bounce */
+  overscroll-behavior-y: contain;
+  /* Ensure proper touch handling */
+  touch-action: pan-y;
+  /* Force hardware acceleration */
+  transform: translateZ(0);
+  /* Prevent scroll chaining */
+  overscroll-behavior: contain;
+}
+
+/* Fix for iOS Safari scrolling issues */
+.scrollable-content {
+  /* Ensure proper height calculation */
+  min-height: 0;
+  /* Enable GPU acceleration */
+  will-change: scroll-position;
+  /* Prevent layout shifts during scroll */
+  contain: layout style paint;
+}
+
+/* Prevent iOS rubber band effect */
+.scrollable-content::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  background: transparent;
+}
+
+/* Additional iOS touch fixes */
+@supports (-webkit-touch-callout: none) {
+  .ios-scroll-fix {
+    /* iOS-specific momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent scroll bounce at boundaries */
+    overscroll-behavior: none;
+  }
+}
