@@ -4,6 +4,8 @@ import LoginPage from './components/LoginPage';
 import StudentDashboard from './components/StudentDashboard';
 import VideoConferenceSchedule from './components/VideoConferenceSchedule';
 import VideoConferenceApp from './components/VideoConference/VideoConferenceApp';
+import VerifyEmailPage from './components/VerifyEmailPage';
+import { useFirebaseAuth } from './hooks/useFirebaseAuth';
 
 interface UserData {
   firstName: string;
@@ -17,6 +19,9 @@ function App() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [conferenceParams, setConferenceParams] = useState<any>(null);
 
+  // Firebase Auth
+  const { user, profile, loading: authLoading, isEmailVerified } = useFirebaseAuth();
+
   React.useEffect(() => {
     console.log('App component mounted');
     console.log('User agent:', navigator.userAgent);
@@ -27,7 +32,11 @@ function App() {
     const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     
-    if (path === '/video-conferences') {
+    // Handle Firebase Auth action URLs (email verification, password reset)
+    if (params.get('mode') && params.get('oobCode')) {
+      setCurrentPage('verify');
+      setShowSplash(false);
+    } else if (path === '/video-conferences') {
       setCurrentPage('video-conferences');
       setShowSplash(false);
     } else if (path === '/video-conference') {
@@ -41,6 +50,23 @@ function App() {
       });
     }
   }, []);
+  
+  // Handle Firebase auth state changes
+  React.useEffect(() => {
+    if (!authLoading && user && isEmailVerified && profile) {
+      // User is authenticated and verified
+      setIsLoggedIn(true);
+      setUserData({ firstName: profile.firstName });
+      if (currentPage === 'login') {
+        setCurrentPage('dashboard');
+      }
+    } else if (!authLoading && !user && isLoggedIn) {
+      // User signed out
+      setIsLoggedIn(false);
+      setUserData(null);
+      setCurrentPage('login');
+    }
+  }, [user, profile, isEmailVerified, authLoading, isLoggedIn, currentPage]);
 
   const handleSplashComplete = () => {
     console.log('Splash complete, transitioning to login...');
@@ -53,16 +79,17 @@ function App() {
 
   const handleLogin = (user?: UserData) => {
     console.log('Login successful, transitioning to dashboard...');
-    setIsLoggedIn(true);
-    setUserData(user || { firstName: 'Alex' });
-    setCurrentPage('dashboard');
+    // Firebase auth will handle state updates automatically
+    // This is kept for compatibility with existing flow
+    if (user) {
+      setUserData(user);
+    }
   };
 
   const handleLogout = () => {
     console.log('Logout, returning to login...');
-    setIsLoggedIn(false);
-    setUserData(null);
-    setCurrentPage('login');
+    // Firebase signOut will be called from the dashboard component
+    // State updates will be handled by Firebase auth state listener
   };
 
   const handleBackToMain = () => {
@@ -103,6 +130,12 @@ function App() {
       </div>
     );
   }
+  
+  // Handle email verification page
+  if (currentPage === 'verify') {
+    return <VerifyEmailPage />;
+  }
+  
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 page-content">
       {showSplash ? (
@@ -118,11 +151,20 @@ function App() {
         height: 'auto',
         minHeight: '100vh'
       }}>
+        {authLoading ? (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-amber-300 border-t-amber-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-amber-800 font-medium">Loading...</p>
+            </div>
+          </div>
+        ) : (
         {currentPage === 'login' ? (
           <LoginPage onLogin={handleLogin} />
         ) : currentPage === 'dashboard' ? (
           <StudentDashboard onLogout={handleLogout} userData={userData} />
         ) : null}
+        )}
       </div>
     </div>
   );

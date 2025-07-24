@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { Mail, CheckCircle, AlertCircle, RefreshCw, ArrowLeft, Clock } from 'lucide-react';
+import { useFirebaseAuth } from '../hooks/useFirebaseAuth';
 
 interface EmailVerificationProps {
   email: string;
-  onResendVerification: () => Promise<void>;
+  onResendVerification?: () => Promise<void>;
   onBackToLogin: () => void;
   onVerificationComplete: () => void;
 }
@@ -19,16 +20,30 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(24 * 60 * 60); // 24 hours in seconds
+  
+  // Firebase Auth hook
+  const { resendVerification, verifyEmail, user, isEmailVerified } = useFirebaseAuth();
 
   // Check for verification token in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    const mode = urlParams.get('mode');
+    const oobCode = urlParams.get('oobCode');
     
-    if (token) {
-      verifyEmailToken(token);
+    if (mode === 'verifyEmail' && oobCode) {
+      verifyEmailToken(oobCode);
     }
   }, []);
+  
+  // Check if user is already verified
+  useEffect(() => {
+    if (user && isEmailVerified) {
+      setVerificationStatus('verified');
+      setTimeout(() => {
+        onVerificationComplete();
+      }, 2000);
+    }
+  }, [user, isEmailVerified, onVerificationComplete]);
 
   // Countdown timer for verification expiry
   useEffect(() => {
@@ -52,31 +67,28 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
     }
   }, [resendCooldown]);
 
-  const verifyEmailToken = async (token: string) => {
+  const verifyEmailToken = async (actionCode: string) => {
     setVerificationStatus('checking');
     
     try {
-      const response = await fetch('/api/verify-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
+      const result = await verifyEmail(actionCode);
+      
+      if (result.success) {
         setVerificationStatus('verified');
         setTimeout(() => {
           onVerificationComplete();
         }, 2000);
       } else {
-        setVerificationStatus(result.expired ? 'expired' : 'error');
+        setVerificationStatus('error');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Email verification error:', error);
-      setVerificationStatus('error');
+      
+      if (error.message.includes('expired')) {
+        setVerificationStatus('expired');
+      } else {
+        setVerificationStatus('error');
+      }
     }
   };
 
@@ -85,11 +97,16 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({
 
     setIsResending(true);
     try {
-      await onResendVerification();
+      if (onResendVerification) {
+        await onResendVerification();
+      } else {
+        // Use Firebase resend verification
+        await resendVerification();
+      }
       setResendCooldown(60); // 60 second cooldown
       setTimeRemaining(24 * 60 * 60); // Reset to 24 hours
       setVerificationStatus('pending');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Resend verification error:', error);
       // Show user-friendly error message but don't break the UI
       setVerificationStatus('error');

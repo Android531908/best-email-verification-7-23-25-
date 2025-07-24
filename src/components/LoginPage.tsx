@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Lock, Eye, EyeOff, ArrowLeft, Mail, CheckCircle, Shield, AlertTriangle, Check, X, ChevronDown, Loader } from 'lucide-react';
 import { EmailValidator, useEmailValidation } from '../utils/emailValidation';
 import EmailVerification from './EmailVerification';
+import { useFirebaseAuth } from '../hooks/useFirebaseAuth';
 
 interface LoginPageProps {
   onLogin: (userData?: { firstName: string }) => void;
@@ -42,6 +43,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  
+  // Firebase Auth hook
+  const { signUp, signIn, sendPasswordReset, error: authError, loading: authLoading, clearError } = useFirebaseAuth();
   
   // Email validation hook
   const { validation: emailValidation, isValidating } = useEmailValidation(email, isSignUp && signUpStep === 1);
@@ -146,36 +150,56 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
 
     setIsLoading(true);
+    setError('');
+    clearError();
     
-    // Simulate authentication process
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
       if (isSignUp) {
-        // For sign up, show email verification
-        setRegisteredEmail(EmailValidator.sanitize(email));
-        setShowEmailVerification(true);
+        // Firebase registration
+        const result = await signUp({
+          email: EmailValidator.sanitize(email),
+          password,
+          firstName,
+          lastName,
+          profession
+        });
+        
+        if (result.needsVerification) {
+          setRegisteredEmail(EmailValidator.sanitize(email));
+          setShowEmailVerification(true);
+        } else {
+          // User is already verified, proceed to dashboard
+          onLogin({ firstName });
+        }
       } else {
-        // For login, extract first name from username
-        const userFirstName = username.split(' ')[0] || username || 'Alex';
-        onLogin({ firstName: userFirstName });
+        // Firebase sign in
+        const result = await signIn(username, password);
+        
+        if (!result.user.emailVerified) {
+          // User needs to verify email
+          setRegisteredEmail(result.user.email || '');
+          setShowEmailVerification(true);
+        } else {
+          // User is verified, proceed to dashboard
+          onLogin({ firstName: result.profile.firstName });
+        }
       }
-    }, 1500);
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      setError(authError || error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResendVerification = async () => {
-    // For development, we'll simulate the API call
-    // In production, this would call your actual backend API
-    const response = await fetch('/api/resend-verification-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: registeredEmail }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to resend verification email');
+    try {
+      const success = await FirebaseAuthService.resendEmailVerification();
+      if (!success) {
+        throw new Error('Failed to resend verification email');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to resend verification email');
     }
   };
 
@@ -202,15 +226,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetLoading(true);
+    setError('');
     
-    setTimeout(() => {
+    try {
+      const success = await sendPasswordReset(resetEmail);
+      if (success) {
+        setResetStep('sent');
+        setTimeout(() => {
+          setResetStep('success');
+        }, 3000);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to send reset email');
       setResetLoading(false);
-      setResetStep('sent');
-      
-      setTimeout(() => {
-        setResetStep('success');
-      }, 3000);
-    }, 2000);
+      return;
+    }
+    
+    setResetLoading(false);
   };
 
   const resetForgotPassword = () => {
@@ -301,7 +333,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
                 <button
                   type="submit"
-                  disabled={resetLoading}
+                  disabled={resetLoading || authLoading}
                   className="w-full text-white font-bold py-6 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   style={{
                     background: 'linear-gradient(135deg, #4A7C59 0%, #2D4A22 100%)',
@@ -312,7 +344,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     border: '2px solid #1F3318'
                   }}
                 >
-                  {resetLoading ? (
+                  {resetLoading || authLoading ? (
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       <span>Sending Reset Link...</span>
@@ -342,6 +374,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <div className="flex items-center justify-center space-x-2">
                 <div className="w-4 h-4 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
                 <span style={{ color: '#8B4513' }}>Processing...</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Firebase Auth Error */}
+          {authError && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 text-red-400" />
+                <span className="text-red-200 text-sm">{authError}</span>
               </div>
             </div>
           )}
@@ -599,13 +641,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     background: 'linear-gradient(135deg, #4A7C59 0%, #2D4A22 100%)',
                     borderRadius: '30px',
                     fontSize: '22px',
-                    fontWeight: '700',
+            disabled={isJoining || authLoading || !devicePermissions.camera || !devicePermissions.microphone}
                     boxShadow: '0 6px 16px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.1)',
                     border: '2px solid #1F3318'
-                  }}
+            {isJoining || authLoading ? (
                 >
                   Next Step
-                </button>
+                <span>{authLoading ? 'Authenticating...' : 'Joining Session...'}</span>
               </>
             ) : (
               <>
@@ -827,7 +869,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 {/* Create Account Button */}
                 <button
                   type="submit"
-                  disabled={isLoading || (email.length > 0 && !emailValidation.isValid)}
+                  disabled={isLoading || authLoading || (email.length > 0 && !emailValidation.isValid)}
                   className="w-full text-white font-bold py-6 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   style={{
                     background: 'linear-gradient(135deg, #4A7C59 0%, #2D4A22 100%)',
@@ -838,7 +880,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     border: '2px solid #1F3318'
                   }}
                 >
-                  {isLoading ? (
+                  {isLoading || authLoading ? (
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       <span>Creating Account...</span>
@@ -914,7 +956,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             {/* Sign In Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || authLoading}
               className="w-full text-white font-bold py-6 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{
                 background: 'linear-gradient(135deg, #4A7C59 0%, #2D4A22 100%)',
@@ -925,7 +967,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 border: '2px solid #1F3318'
               }}
             >
-              {isLoading ? (
+              {isLoading || authLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   <span>Signing In...</span>
@@ -939,7 +981,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             <button
               type="button"
               onClick={handleFaceId}
-              disabled={isLoading}
+              disabled={isLoading || authLoading}
               className="w-full text-white font-bold py-6 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{
                 background: 'linear-gradient(135deg, #E6A532 0%, #CD853F 100%)',
@@ -950,7 +992,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 border: '2px solid #B8860B'
               }}
             >
-              {isLoading ? (
+              {isLoading || authLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   <span>Authenticating...</span>
