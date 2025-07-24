@@ -60,6 +60,8 @@ function App() {
         password: params.get('password'),
         subject: params.get('subject'),
         instructor: params.get('instructor')
+      });
+    }
   }, []);
   
   // Handle Firebase auth state changes
