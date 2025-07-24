@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import VideoConferenceSchedule from './VideoConferenceSchedule';
+import { useFirebaseAuth } from '../hooks/useFirebaseAuth';
 import { 
   Home, 
   Calendar, 
@@ -36,6 +37,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout, userData 
   const [faceIdEnabled, setFaceIdEnabled] = useState(false);
   const [showFaceIdConfirm, setShowFaceIdConfirm] = useState(false);
   const [pendingFaceIdState, setPendingFaceIdState] = useState(false);
+  
+  // Firebase Auth
+  const { signOut } = useFirebaseAuth();
 
   // Add touch event handlers for iOS scrolling
   React.useEffect(() => {
@@ -479,7 +483,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout, userData 
 
                 {/* Sign Out */}
                 <button 
-                  onClick={onLogout}
+                  onClick={async () => {
+                    try {
+                      await signOut();
+                      onLogout(); // Call the original logout handler for any cleanup
+                    } catch (error) {
+                      console.error('Sign out error:', error);
+                    }
+                  }}
                   className="flex items-center space-x-3 w-full p-4 bg-red-100 hover:bg-red-200 rounded-2xl transition-colors duration-200 border border-red-200"
                 >
                   <LogOut className="h-5 w-5 text-red-600" />
