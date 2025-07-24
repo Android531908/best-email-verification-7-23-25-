@@ -60,10 +60,6 @@ function App() {
         password: params.get('password'),
         subject: params.get('subject'),
         instructor: params.get('instructor')
-      });
-      setCurrentPage('verify');
-      setShowSplash(false);
-    }
   }, []);
   
   // Handle Firebase auth state changes
